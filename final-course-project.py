@@ -3,6 +3,7 @@ from sklearn.decomposition import PCA
 import numpy as np
 import scipy.stats as stats
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 raw_dataset = pd.read_csv('raw_datasets\churn_raw_data.csv')
@@ -18,24 +19,52 @@ churn_df.drop(columns=churn_df.columns[0], axis=1, inplace=True)
 # print(churn_df.head())
 
 # -------------------------- Missing Values ------------------------------
+### have to change all nan values in the columns listed below to a mean or median value
+### we do this for the outlier test. if we dont use mean or median, then the histogram
+### could show outliers, therefore messsing up the entire outlier test
+
 # print(churn_df.isna().sum()) # find the number in NaNs in column
-# Replace NaNs in column to 0
-churn_df['Children'].fillna(0, inplace=True) 
-# print(churn_df['Children'].isna().sum()) # Check how many NaNs in column
 
 # Replace the NaNs in the Age column with the mean
-# churn_df['Age'].fillna(churn_df['Age'].mean(), inplace=True)
-# print(churn_df['Children'].isna().sum()) # Check how many NaNs in column
+# ['Children', 'Age', 'Income', 'Techie', 'Phone', 'TechSupport', 'Tenure', 'Bandwidth_GB_Year']
+replace_nan_list = ['Children', 'Age', 'Income', 'Tenure', 'Bandwidth_GB_Year']
+
+for var in replace_nan_list:
+    var_dataframe = churn_df[var]
+    var_mean = var_dataframe.mean()
+    var_dataframe.fillna(var_mean, inplace=True)
 
 # print(churn_df.isna().sum()) # finds the number in NaNs in column
 
 # ----------------------------- Outliers ---------------------------------
 # do for all columns of numeric value
-churn_df['Zscore_Population']=stats.zscore(churn_df.iloc[::, 0])
+churn_df['Zscore_Population'] = stats.zscore(churn_df.iloc[::, 0])
 # print(churn_df[['Zscore_Population', 'Population']].head())
+# print(churn_df['Zscore_Population'])
+# Plot histogram to check for outliers with Seaborn
+# sns.set()
 
-# Plot histogram to check for outliers
-churn_df['Zscore_Population'].plot(kind='bar')
+# col_header_list = ['Lat', 'Lng', 'Population', 'Children', 'Age', 'Income', 'Outage_sec_perweek',
+#                    'Email', 'Contacts', 'Yearly_equip_failure', 'Tenure', 'MonthlyCharge',
+#                    'Bandwidth_GB_Year', 'item1', 'item2', 'item3','item4', 'item5', 'item6',
+#                    'item7', 'item8']
+
+# for header in col_header_list:
+#     z_scores = stats.zscore(churn_df[header])
+#     print(header, type(z_scores))
+
+#     _ = plt.hist(z_scores)
+#     # _ = plt.hist(churn_df['Population'])
+#     _ = plt.xlabel('X')
+#     _ = plt.ylabel('Y')
+#     plt.show()
+
+# This is a plot graph
+# zscore_series = churn_df['Zscore_Population']
+# plt.plot(zscore_series)
+# plt.show()
+
+# churn_df['Zscore_Population'].plot(kind='bar')
 # churn_df[['Zscore_Population', 'Population']].plot()
 
 
