@@ -10,14 +10,10 @@ raw_dataset = pd.read_csv('raw_datasets\churn_raw_data.csv') # imports csv into 
 
 churn_df = raw_dataset # the working dataframe 
 
-## ----- Data Exploration -----
-# churn_df.info()
-
-
 ## ----- Detect Duplicates -----
-# Check if Customer_id is not unique column; it is unique
+# Check if Customer_id, Interactionares not unique columns; all vals are unique
 # print(churn_df['Customer_id'].duplicated().value_counts()) 
-print(churn_df['Interaction'].duplicated().value_counts()) 
+# print(churn_df['Interaction'].duplicated().value_counts()) 
 
 # Checks if 1st col equal to 2nd col in data set
 # print(churn_df.iloc[:, 0].equals(churn_df.iloc[:, 1])) # returns True
@@ -43,34 +39,45 @@ for var in replace_nan_list:
     var_mean = var_dataframe.mean()
     var_dataframe.fillna(var_mean, inplace=True) # replaces NaN vals with mean vals
 
-## print(churn_df.isna().sum()) # finds the number in NaNs in column
+print(churn_df.isna().sum()) # finds the number in NaNs in column
 
 
-## ----- Detect and Treat Outliers -----
+## ----- Detect Outliers -----
 # churn_df['Zscore_Population'] = stats.zscore(churn_df.iloc[::, 0])
-# print(churn_df['Zscore_Population'])
+# print(churn_df['Zscore_Population'].head())
+
+test_df = churn_df
+
+# test_df['Zscore_Population'] = stats.zscore(test_df['Children'])
+
+test_df['Zscore_Children'] = stats.zscore(test_df['Children'])
+
+test_outlier_data = test_df.query('Zscore_Children > 3.9 | Zscore_Children < -3.9')
+print(test_outlier_data[['Children', 'Zscore_Children']])
+print(test_outlier_data['Children'].describe())
 
 # Plot histogram to check for outliers with Seaborn
 sns.set() # now seaborn is mounted
-col_header_list = ['Lat', 'Lng', 'Population', 'Children', 'Age', 'Income', 'Outage_sec_perweek',
-                   'Email', 'Contacts', 'Yearly_equip_failure', 'Tenure', 'MonthlyCharge',
-                   'Bandwidth_GB_Year', 'item1', 'item2', 'item3','item4', 'item5', 'item6',
-                   'item7', 'item8']
+
+# col_header_list = ['Lat', 'Lng', 'Population', 'Children', 'Age', 'Income', 'Outage_sec_perweek',
+#                    'Email', 'Contacts', 'Yearly_equip_failure', 'Tenure', 'MonthlyCharge',
+#                    'Bandwidth_GB_Year', 'item1', 'item2', 'item3','item4', 'item5', 'item6',
+#                    'item7', 'item8']
 
 # col_header_list = ['Lat', 'Lng', 'Population', 'Children', 'Age', 'Income', 'Outage_sec_perweek',
 #                    'Email']
-has_outliers = []
+# has_outliers = []
 
-for header in col_header_list:
-    outliers = []
-    z_scores = stats.zscore(churn_df[header])
+# for header in col_header_list:
+#     outliers = []
+#     z_scores = stats.zscore(churn_df[header])
     
-    for score in z_scores:
-        if score < -3.9 or score > 3.9: 
-            outliers.append(score)
+#     for score in z_scores:
+#         if score < -3.9 or score > 3.9: 
+#             outliers.append(score)
     
-    if len(outliers) > 0:
-        has_outliers.append((header, outliers))
+#     if len(outliers) > 0:
+#         has_outliers.append((header, outliers))
 
     # _ = plt.hist(z_scores)
     # _ = plt.xlabel('Z-Score')
@@ -124,4 +131,8 @@ plt.plot(eigenvalues)
 plt.xlabel('number of components')
 plt.ylabel('eigenvalues')
 plt.axhline(y=1, color="red")
-plt.show() 
+# plt.show() 
+
+
+## Extract dataframe 
+churn_df.to_csv('cleaned_dataset.csv')
