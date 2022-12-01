@@ -10,7 +10,15 @@ raw_dataset = pd.read_csv('raw_datasets\churn_raw_data.csv') # imports csv into 
 
 churn_df = raw_dataset # the working dataframe 
 
+## ----- Data Exploration -----
+# churn_df.info()
+
+
 ## ----- Detect Duplicates -----
+# Check if Customer_id is not unique column; it is unique
+# print(churn_df['Customer_id'].duplicated().value_counts()) 
+print(churn_df['Interaction'].duplicated().value_counts()) 
+
 # Checks if 1st col equal to 2nd col in data set
 # print(churn_df.iloc[:, 0].equals(churn_df.iloc[:, 1])) # returns True
 
@@ -19,8 +27,6 @@ churn_df = raw_dataset # the working dataframe
 # Remove 1st column; it is a duplicate of the 2nd column
 churn_df.drop(columns=churn_df.columns[0], axis=1, inplace=True)
 # print(churn_df.head())
-
-churn_df = churn_df.round({'MonthlyCharge': 2, 'Tenure': 2, 'Outage_sec_perweek': 1})
 
 
 ## ----- Detect Missing Values -----
@@ -40,11 +46,12 @@ for var in replace_nan_list:
 ## print(churn_df.isna().sum()) # finds the number in NaNs in column
 
 
-## ----- Detect Outliers -----
+## ----- Detect and Treat Outliers -----
 # churn_df['Zscore_Population'] = stats.zscore(churn_df.iloc[::, 0])
 # print(churn_df['Zscore_Population'])
+
 # Plot histogram to check for outliers with Seaborn
-sns.set()
+sns.set() # now seaborn is mounted
 col_header_list = ['Lat', 'Lng', 'Population', 'Children', 'Age', 'Income', 'Outage_sec_perweek',
                    'Email', 'Contacts', 'Yearly_equip_failure', 'Tenure', 'MonthlyCharge',
                    'Bandwidth_GB_Year', 'item1', 'item2', 'item3','item4', 'item5', 'item6',
@@ -52,28 +59,69 @@ col_header_list = ['Lat', 'Lng', 'Population', 'Children', 'Age', 'Income', 'Out
 
 # col_header_list = ['Lat', 'Lng', 'Population', 'Children', 'Age', 'Income', 'Outage_sec_perweek',
 #                    'Email']
-has_outliers_arr = []
+has_outliers = []
 
 for header in col_header_list:
+    outliers = []
     z_scores = stats.zscore(churn_df[header])
-    # print(header, type(z_scores))
-    if z_scores.min() < -3.9 or z_scores.max() > 3.9:
-        has_outliers_arr.append(( header, True ))
-    else:
-        has_outliers_arr.append(( header,False ))
+    
+    for score in z_scores:
+        if score < -3.9 or score > 3.9: 
+            outliers.append(score)
+    
+    if len(outliers) > 0:
+        has_outliers.append((header, outliers))
 
-    _ = plt.hist(z_scores)
-    _ = plt.xlabel('Z-Score')
-    _ = plt.ylabel(f'{header} Freq')
-    # plt.show()
-print(has_outliers_arr)
+    # _ = plt.hist(z_scores)
+    # _ = plt.xlabel('Z-Score')
+    # _ = plt.ylabel(f'{header} Freq')
+    # plt.savefig(f'figures/{header}_hist.png')
+    # plt.clf()
 
-## ----- Treat Outliers -----
+# print(has_outliers) # shows a list of tuples of variable names and their outliers
 
+# for var, z_val in has_outliers:
+#     print(var)
+#     print(len(z_val))
 
 
 ## ----- Other data quality issues -----
 # limit decimal numbers to 100th point aka 2 decimal nums after point
 #   - MonthlyCharge, Tenure, Outage_sec_perweek, 
-# churn_df = churn_df.round({'MonthlyCharge': 2, 'Tenure': 2, 'Outage_sec_perweek': 1})
+churn_df = churn_df.round({'MonthlyCharge': 2, 'Tenure': 2, 'Outage_sec_perweek': 1})
 # print(churn_df[['MonthlyCharge', 'Tenure', 'Outage_sec_perweek']])
+
+# Change Churn series data from yes/no to 1/0
+churn_df['Churn'].replace({'Yes': 1, 'No': 0}, inplace=True)
+
+
+## ----- PCA -----
+test_pca = churn_df[['Children', 'Age', 'Income', 'Churn', 'Outage_sec_perweek','Email', 'Contacts', 
+                     'Yearly_equip_failure', 'Tenure', 'MonthlyCharge']]
+
+# Step 3: Normalize your data and applying PCA
+test_pca_normalized = (test_pca - test_pca.mean()) / test_pca.std()
+
+pca = PCA(n_components=test_pca.shape[1]) # how many principle components applied, defines shape
+pca.fit(test_pca_normalized) # applies PCA func to normalized data set
+
+# transforming it back to a data frame
+test_pca2 = pd.DataFrame(pca.transform(test_pca_normalized),
+                         columns=['PC1', 'PC2', 'PC3', 'PC4', 'PC5', 'PC6', 'PC7', 'PC8', 'PC9', 'PC10'])
+# print(test_pca2)
+
+loadings = pd.DataFrame(pca.components_.T,
+           columns=['PC1', 'PC2', 'PC3','PC4', 'PC5', 'PC6', 'PC7', 'PC8', 'PC9', 'PC10'],
+           index=test_pca_normalized.columns)
+           
+# print(loadings) # E1
+
+## Selecting PCs
+cov_matrix = np.dot(test_pca_normalized.T, test_pca_normalized / test_pca.shape[0])
+eigenvalues = [np.dot(eigenvector.T, np.dot(cov_matrix, eigenvector)) for eigenvector in pca.components_]
+
+plt.plot(eigenvalues)
+plt.xlabel('number of components')
+plt.ylabel('eigenvalues')
+plt.axhline(y=1, color="red")
+plt.show() 
